@@ -1,0 +1,6 @@
+Diamonds
+Emeralds
+Iron
+Gold
+Copper
+Coal
