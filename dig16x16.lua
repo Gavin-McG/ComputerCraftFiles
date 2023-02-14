@@ -76,7 +76,6 @@ local direction = 0
 
 --returns amount to change x based on direction
 local function xChange(dir)
-    assert(dir<0 or dir>3, "Invalid input to xChange")
     if dir==0 or dir==2 then
         return 0
     elseif dir==1 then
@@ -89,12 +88,11 @@ end
 
 --returns amount to change y based on direction 
 local function yChange(dir)
-    assert(dir<0 or dir>3, "Invalid input to xChange")
     if dir==1 or dir==3 then
         return 0
-    elseif dir==1 then
+    elseif dir==0 then
         return 1
-    elseif dir==3 then
+    elseif dir==2 then
         return -1
     end
     return nil
@@ -149,7 +147,7 @@ local function progressDownward()
             return nil
         end
     end
-    if turtle.downward() then
+    if turtle.down() then
         z = z-1
         return true
     else
