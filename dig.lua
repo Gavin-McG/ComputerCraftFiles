@@ -210,7 +210,7 @@ local function moveItem()
     --throw out if no spaces available
     if nextSlot<17 then
         turtle.transferTo(nextSlot)
-        items[nextSlot] = data.name4
+        items[nextSlot] = data.name
         nextSlot = nextSlot+1
     else
         turtle.dropUp()
@@ -265,6 +265,7 @@ end
 local function downward()
     if not digDown() then return nil end
     if not turtle.down() then return nil end
+    if not digDown() then return nil end
     z = z+1
     return true
 end
@@ -353,12 +354,88 @@ local function calcLayerCapacity()
     return math.floor(remaining / layerCost)
 end
 
+--whether the bottom layer has been mined
 local isComplete = false
 
-turnTo(2)
-refuelToCapacity()
-mineUntilZ(5)
-mineUntilY(10)
+while not isComplete do
+    --refuel before mining
+    turnTo(2)
+    refuelToCapacity()
+
+    --calculate number of layers that can be mined
+    local layersCapacity = calcLayerCapacity()
+    print("enough fuel for "..tostring(layersCapacity).." layers")
+
+    --mine out the number of layers capable
+    for i=1,layersCapacity do
+        --go to z layer
+        print("moving to next layer")
+        if not mineUntilZ(nextLayer) then return nil end
+        if nextLayer==depth-1 then
+            isComplete=true
+        end
+        nextZLayer()
+
+        --mine back and forth from x=0 to x=width-1
+        while x~=width-1 do
+            if y==0 then
+                if not mineUntilY(length-1) then return nil end
+            elseif y==length-1 then
+                if not mineUntilY(0) then return nil end
+            else
+                print("incorrect y position")
+                return nil
+            end
+            if not mineUntilX(x+1) then return nil end
+
+            if y==0 then
+                if not mineUntilY(length-1) then return nil end
+            elseif y==length-1 then
+                if not mineUntilY(0) then return nil end
+            else
+                print("incorrect y position")
+                return nil
+            end
+        end
+
+        --go to z layer
+        print("moving to next layer")
+        if not mineUntilZ(nextLayer) then return nil end
+        if nextLayer==depth-1 then
+            isComplete=true
+        end
+        nextZLayer()
+
+        --mine back and forth from x=width-1 to x=0
+        while x~=0 do
+            if y==0 then
+                if not mineUntilY(length-1) then return nil end
+            elseif y==length-1 then
+                if not mineUntilY(0) then return nil end
+            else
+                print("incorrect y position")
+                return nil
+            end
+            if not mineUntilX(x-1) then return nil end
+
+            if y==0 then
+                if not mineUntilY(length-1) then return nil end
+            elseif y==length-1 then
+                if not mineUntilY(0) then return nil end
+            else
+                print("incorrect y position")
+                return nil
+            end
+        end
+    end
+
+    --return to refuel station
+    print('returning to refuel station')
+    if not mineUntilZ(0) then return nil end
+    if not mineUntilX(0) then return nil end
+    if not mineUntilY(0) then return nil end
+    print("returned to refuel station")
+end
 
 
 
