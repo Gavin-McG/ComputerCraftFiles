@@ -373,7 +373,6 @@ while not isComplete do
         if not mineUntilZ(nextLayer) then return nil end
         if nextLayer==depth-1 then
             isComplete=true
-            break
         end
         nextZLayer()
 
@@ -398,12 +397,15 @@ while not isComplete do
             return nil
         end
 
+        if isComplete then
+            break
+        end
+
         --go to z layer
         print("moving to next layer")
         if not mineUntilZ(nextLayer) then return nil end
         if nextLayer==depth-1 then
             isComplete=true
-            break
         end
         nextZLayer()
 
@@ -426,6 +428,10 @@ while not isComplete do
         else
             print("incorrect y position")
             return nil
+        end
+
+        if isComplete then
+            break
         end
     end
 
