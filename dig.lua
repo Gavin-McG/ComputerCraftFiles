@@ -365,6 +365,10 @@ while not isComplete do
     --calculate number of layers that can be mined
     local layersCapacity = calcLayerCapacity()
     print("enough fuel for "..tostring(layersCapacity).." layers")
+    if layersCapacity==0 then
+        print("not enough fuel to continue")
+        return nil
+    end
 
     --mine out the number of layers capable
     for i=1,layersCapacity do
@@ -442,6 +446,9 @@ while not isComplete do
     if not mineUntilY(0) then return nil end
     print("returned to refuel station")
 end
+
+print("Process completed")
+return true
 
 
 
