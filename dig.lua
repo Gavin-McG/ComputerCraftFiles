@@ -42,8 +42,8 @@ local depth = tonumber(arg[3])
 
 --comfirm invetory is empty
 for i=1,16 do
-    turtle.select(1);
-    if turtle.getItemCount~=0 then
+    turtle.select(i);
+    if turtle.getItemCount()~=0 then
         print("inventory must be empty to start")
         return nil
     end
@@ -96,13 +96,16 @@ end
 
 --find direction of fuel chest
 local side=0
-while side<=3 do
-    if turtle.detect() then
-        print("found block on side "..tostring(side))
-    else
-        side = side+1
-        turtle.turnLeft()
-    end
+while side<=3 and not turtle.detect() do
+    side = side+1
+    turtle.turnLeft()
+end
+
+if side>3 then
+    print("No fuel chest found")
+    return nil
+else
+    print("found chest on side "..side)
 end
 
 --keep track of position
