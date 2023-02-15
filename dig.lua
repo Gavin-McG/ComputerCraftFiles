@@ -6,14 +6,7 @@
 --starting layer should be cleared
 --initial position will be the front-right block when facing the fuel storage
 
---confirm parameters
-if arg[1]==nil or arg[2]==nil or arg[3]==nil then
-    print("Usage: ./dig.lua [width] [length] [depth]")
-    print("or")
-    print("Usage: ./dig.lua help")
-    return nil
-end
-
+--help command
 if arg[1]=="help" then
     print("Usage: ./dig.lua [width] [length] [depth]")
     print("")
@@ -33,65 +26,73 @@ if arg[1]=="help" then
     print("X")
 end
 
+--confirm parameters
+if arg[1]==nil or arg[2]==nil or arg[3]==nil then
+    print("Usage: ./dig.lua [width] [length] [depth]")
+    print("or")
+    print("Usage: ./dig.lua help")
+    return nil
+end
+
 local width = tonumber(arg[1])
 local length = tonumber(arg[2])
 local depth = tonumber(arg[3])
 
---maximum size
-if (depth+1)*width*length>turtle.getFuelLimit() then
-    print("size of hole must not exceed fuel limit")
-    print("fuel limit: "..turtle.getFuelLimit())
-    return nil
-end
-
-local fuel_needed = 16*16*(depth+1)
-local initial_fuel = turtle.getFuelLevel()
-
---check that invetory is empty
-turtle.select(1)
-for i = 1,16 do
-    if turtle.getItemCount(i)~=0 then
-        print("Inventory must be empty before beginning")
+--comfirm invetory is empty
+for i=1,16 do
+    turtle.select(1);
+    if turtle.getItemCount~=0 then
+        print("inventory must be empty to start")
         return nil
     end
 end
-print("inventory is empty")
 
---look for direction of fuel storage
-local turns = 0
-print("Current fuel..."..tostring(turtle.getFuelLevel()))
+local function refuelToCapacity()
+    print("refueling...")
+    --slot 1 prioritized for fuel
+    turtle.select(1)
+    turtle.dropUp()
 
-while turns<3 and (turtle.getFuelLevel()<fuel_needed or turtle.getFuelLevel()==initial_fuel) do
-    if turtle.suck() then
-        if turtle.refuel() then
-            print("Current fuel..."..tostring(turtle.getFuelLevel()))
-        elseif turtle.drop() then
-            print("non-fuel item found. depositing it back into chest")
-            turns=turns+1;
-            print("turning to side "..tostring(turns))
-            turtle.turnLeft()
+    --attempt to refuel until full
+    while turtle.getFuelLevel() < turtle.getFuelLimit() do
+        if turtle.suck() then
+            if turtle.refuel() then
+                print("Current fuel: "..turtle.getFuelLevel())
+            elseif turtle.drop() then
+                --non-fuel item deposited back into chest
+                print("finished refueling - non-fuel item in chest")
+                return true
+            else
+                --non-fuel item dropped upward
+                turtle.dropUp()
+                print("finished refueling - non-fuel item in chest")
+                print("chest full - dropping items")
+                return true
+            end
         else
-            print("error re-depositing non-fuel item")
-            print("exiting")
-            return nil
+            --failed to get items from chest
+            print("no more items to retrieve from chest")
+            return true
         end
+    end 
+
+    print("turtle fueled to capacity")
+
+    --drop any extra fuel
+    if turtle.drop() then
+        --extra fuel item deposited back into chest
+        print("depositing extra fuel in chest")
     else
-        turns=turns+1;
-        print("turning to side "..tostring(turns))
-        turtle.turnLeft()
+        --extra fuel item dropped upward
+        turtle.dropUp()
+        print("depositing extra fuel in chest")
+        print("chest full - dropping items")
     end
+
+    return true
 end
 
-if turns>=4 then
-    if turtle.getFuelLevel()==initial_fuel then
-        print("no fuel found in any of four directions")
-    else
-        print("insufficient fuel found in chests for given depth")
-    end
-    return nil
-end
-
-print("Fuel chest located on side "..tostring(turns))
+--find direction of fuel chest
 
 --turn to starting direction
 turtle.turnLeft()
@@ -102,6 +103,8 @@ local x=0
 local y=0
 local z=0
 local direction = 0
+local nextSlot = 2
+local items = {}
 
 --changes x value based on diection
 local function xIncrement()
@@ -154,48 +157,69 @@ local function leftDirection()
     return nil
 end
 
---breaks the block in front of the turtle and moves forward
---n number of blocks to travel
-local function progressForward(n)
-    for i=1,n do
-        if turtle.detect() then
-            if not turtle.dig() then
-                print("error digging block")
-                print("exiting")
-                return nil
-            end
-        end
-        if turtle.forward() then
-            x = x+xChange()
-            y = y+yChange()
-            return true
-        else
-            print("error moving forward")
-            print("exiting")
-            return nil
+--moves item from slot 1 to next available slot
+--drops if no space is avaiable
+local function moveItem()
+    turtle.select(1)
+    local data = turtle.getItemDetail(1)
+    --deposit iteem in first slot to known slots
+    for i=2,(nextSlot-1) do
+        if items[i]==data.name and turtle.transferTo(i) and turtle.getItemCount(1)==0 then
+            break
         end
     end
+
+    --if doesnt fit into know slots add a new slot
+    --throw out if no spaces available
+    if nextSlot<17 then
+        turtle.transferTo(nextSlot)
+        items[nextSlot] = data.name4
+        nextSlot = nextSlot+1
+    else
+        turtle.dropUp()
+    end
+    return true
 end
 
---breaks block below the turtle and moves downward
---n number of blocks to travel
-local function progressDownward(n)
-    for i=1,n do
-        if turtle.detectDown() then
-            if not turtle.digDown() then
-                print("error digging block")
-                print("exiting")
-                return nil
-            end
-        end
-        if turtle.down() then
-            z = z-1
-            return true
-        else
-            print("error moving downward")
-            print("exiting")
-            return nil
-        end
+local function dig()
+    if not turtle.dig() then return nil end
+    moveItem()
+    return true
+end
+
+local function digUp()
+    if not turtle.digUp() then return nil end
+    moveItem()
+    return true
+end
+
+local function digDown()
+    if not turtle.digDown() then return nil end
+    moveItem()
+    return true
+end
+
+local function forward()
+    if turtle.detect() then
+        if not dig() then return nil end
     end
+    if not turtle.forward() then return nil end
+    return true
+end
+
+local function upward()
+    if turtle.detectUp() then
+        if not digUp() then return nil end
+    end
+    if not turtle.up() then return nil end
+    return true
+end
+
+local function downward()
+    if turtle.detect() then
+        if not digDown() then return nil end
+    end
+    if not turtle.down() then return nil end
+    return true
 end
 
