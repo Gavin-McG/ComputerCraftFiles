@@ -111,16 +111,43 @@ local function xIncrement()
     if direction==0 or direction==2 then
         return true
     elseif direction==1 then
-
+        x = x+1
         return true
     elseif direction==3 then
+        x = x-1
+        return true
+    end
+    return nil
+end
+
+--return the amount x will change in the current direction
+local function getXIncrement()
+    if direction==0 or direction==2 then
+        return 0
+    elseif direction==1 then
         return 1
+    elseif direction==3 then
+        return -1
     end
     return nil
 end
 
 --changes y amount based on forward direction
 local function yIncrement()
+    if direction==1 or direction==3 then
+        return true
+    elseif direction==0 then
+        y = y+1
+        return true
+    elseif direction==2 then
+        y = y-1
+        return true
+    end
+    return nil
+end
+
+--return the amount x will change in the current direction
+local function getYIncrement()
     if direction==1 or direction==3 then
         return 0
     elseif direction==0 then
@@ -181,45 +208,130 @@ local function moveItem()
     return true
 end
 
+--dig forward and sort items
 local function dig()
     if not turtle.dig() then return nil end
     moveItem()
     return true
 end
 
+--dig up and sort items
 local function digUp()
     if not turtle.digUp() then return nil end
     moveItem()
     return true
 end
 
+--dig down and sort items
 local function digDown()
     if not turtle.digDown() then return nil end
     moveItem()
     return true
 end
 
+--mine block in front and move forward
 local function forward()
     if turtle.detect() then
         if not dig() then return nil end
     end
     if not turtle.forward() then return nil end
+    if not Increment() then return nil end
     return true
 end
 
+--mine block up and move forward
 local function upward()
     if turtle.detectUp() then
         if not digUp() then return nil end
     end
     if not turtle.up() then return nil end
+    z = z-1
     return true
 end
 
+--mine block down and move forward
 local function downward()
     if turtle.detect() then
         if not digDown() then return nil end
     end
     if not turtle.down() then return nil end
+    z = z+1
     return true
 end
+
+--mine until the turtle reaches a specific x value
+local function mineUntilX(xGoal)
+    if x<xGoal then
+        while getXIncrement()~=1 do
+            leftDirection()
+        end
+    elseif x>xGoal then
+        while getXIncrement()~=-1 do
+            leftDirection()
+        end
+    else
+        return true
+    end
+
+    while x~=xGoal do
+        if not forward() then return nil end
+        if not digUp() then return nil end
+        if not digDown() then return nil end
+    end
+    return true
+end
+
+--mine until the turtle reaches a specific y value
+local function mineUntilY(yGoal)
+    if y<yGoal then
+        while getYIncrement()~=1 do
+            leftDirection()
+        end
+    elseif y>yGoal then
+        while getYIncrement()~=-1 do
+            leftDirection()
+        end
+    else
+        return true
+    end
+
+    while y~=yGoal do
+        if not forward() then return nil end
+        if not digUp() then return nil end
+        if not digDown() then return nil end
+    end
+    return true
+end
+
+local function mineUntilZ(zGoal)
+    if z>zGoal then
+        while z~=zGoal do
+            if not upward() then return nil end
+        end
+    else
+        while z~=zGoal do
+            if not downward() then return nil end
+        end
+    end
+    return true
+end
+
+local nextLayer = 2
+
+local function nextZLayer()
+    z = z+3
+    if z>depth-1 then
+        z = depth-1
+    end
+end
+
+local function calcLayerCapacity()
+    local travelcost = (nextLayer-3)*2
+    local layerCost = (2*width*length)+12
+
+    local remaining = turtle.getFuelLevel()
+    remaining = remaining-travelcost
+    return math.floor(remaining / layerCost)
+end
+
 
