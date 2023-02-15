@@ -4,13 +4,15 @@
 
 --start turtle next to storage block with fuel
 --starting layer should be cleared
---initial position will be the front-right block when facing the fuel storage
+--The turtle will mine out forward and right when facing away from the storage container
+--The starting layer of the turtle should be clear
 
 --help command
 if arg[1]=="help" then
     print("Usage: ./dig.lua [width] [length] [depth]")
     print("")
     print("Turtle should be placed next do a storage container with suitable fuel source.")
+    print("No other blocks should surround the turtle in its starting position.")
     print("The starting layer of the turtle should be clear.")
     print("The turtle will mine out forward and right when facing away from the storage container")
     print("Top-down example:")
@@ -93,16 +95,21 @@ local function refuelToCapacity()
 end
 
 --find direction of fuel chest
-
---turn to starting direction
-turtle.turnLeft()
-turtle.turnLeft()
+local side=0
+while side<=3 do
+    if turtle.detect() then
+        print("found block on side "..tostring(side))
+    else
+        side = side+1
+        turtle.turnLeft()
+    end
+end
 
 --keep track of position
 local x=0
 local y=0
 local z=0
-local direction = 0
+local direction = 2
 local nextSlot = 2
 local items = {}
 
@@ -210,30 +217,34 @@ end
 
 --dig forward and sort items
 local function dig()
-    if not turtle.dig() then return nil end
-    moveItem()
+    if turtle.detect() then
+        if not turtle.dig() then return nil end
+        moveItem()
+    end
     return true
 end
 
 --dig up and sort items
 local function digUp()
-    if not turtle.digUp() then return nil end
-    moveItem()
+    if turtle.detectUp() then
+        if not turtle.digUp() then return nil end
+        moveItem()
+    end
     return true
 end
 
 --dig down and sort items
 local function digDown()
-    if not turtle.digDown() then return nil end
-    moveItem()
+    if turtle.detectDown() then
+        if not turtle.digDown() then return nil end
+        moveItem()
+    end
     return true
 end
 
 --mine block in front and move forward
 local function forward()
-    if turtle.detect() then
-        if not dig() then return nil end
-    end
+    if not dig() then return nil end
     if not turtle.forward() then return nil end
     if not Increment() then return nil end
     return true
@@ -241,9 +252,7 @@ end
 
 --mine block up and move forward
 local function upward()
-    if turtle.detectUp() then
-        if not digUp() then return nil end
-    end
+    if not digUp() then return nil end
     if not turtle.up() then return nil end
     z = z-1
     return true
@@ -251,9 +260,7 @@ end
 
 --mine block down and move forward
 local function downward()
-    if turtle.detect() then
-        if not digDown() then return nil end
-    end
+    if not digDown() then return nil end
     if not turtle.down() then return nil end
     z = z+1
     return true
@@ -303,6 +310,7 @@ local function mineUntilY(yGoal)
     return true
 end
 
+--mine until the turtle reaches a specific z value
 local function mineUntilZ(zGoal)
     if z>zGoal then
         while z~=zGoal do
@@ -316,15 +324,23 @@ local function mineUntilZ(zGoal)
     return true
 end
 
-local nextLayer = 2
-
-local function nextZLayer()
-    z = z+3
-    if z>depth-1 then
-        z = depth-1
+local function turnTo(dir) 
+    while dir~=direction do
+        leftDirection()
     end
 end
 
+local nextLayer = 2
+
+--set nextLayer to the z value of the next layer to be mined out
+local function nextZLayer()
+    nextLayer = nextLayer+3
+    if nextLayer>depth-1 then
+        nextLayer = depth-1
+    end
+end
+
+--returns the number of layers that can be mined from the current fuel level
 local function calcLayerCapacity()
     local travelcost = (nextLayer-3)*2
     local layerCost = (2*width*length)+12
@@ -333,5 +349,13 @@ local function calcLayerCapacity()
     remaining = remaining-travelcost
     return math.floor(remaining / layerCost)
 end
+
+local isComplete = false
+
+turnTo(2)
+refuelToCapacity()
+mineUntilZ(5)
+mineUntilY(10)
+
 
 
