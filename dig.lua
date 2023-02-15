@@ -334,7 +334,11 @@ local function turnTo(dir)
     end
 end
 
+--keeps track of the zlayer to go to next
 local nextLayer = 2
+if nextLayer>depth-1 then
+    nextLayer = depth-1
+end
 
 --set nextLayer to the z value of the next layer to be mined out
 local function nextZLayer()
